@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: My first serverless application.
+
+Resources:
+
+  Products:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambdaFunction.handler
+      Runtime: nodejs8.10
+      Events:
+        authToken:
+          Type: Api
+          Properties:
+            Path: /authToken
+            Method: any
