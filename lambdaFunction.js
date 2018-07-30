@@ -1,25 +1,25 @@
 'use strict';
-
-const https = require('follow-redirects').https;
+const https = require('https');
 
 const github_client_id = process.env.GITHUB_CLIENT_ID;
 const github_client_secret = process.env.GITHUB_CLIENT_SECRET;
 
+
 exports.handler = (event, context, callback) => {
   const authCode = event.queryStringParameters.code;
 
-  const requestPath = "/login/oauth/access_token" +
+  const tokenEndpoint = "/login/oauth/access_token" +
     "?client_id=" + github_client_id +
     "&client_secret=" + github_client_secret +
     "&code=" + authCode +
     "&accept=:json";
 
-  let response = {};
+  let response = '';
 
   const httpOptions = {
     method: 'POST',
     host: 'github.com',
-    path: requestPath,
+    path: tokenEndpoint,
     headers: {
       'User-Agent': 'Serverless-Oauth2-Example',
       'accept': 'application/json'
@@ -27,8 +27,8 @@ exports.handler = (event, context, callback) => {
   }
 
   https.request(httpOptions, res => {
-    res.on('data', (chunk) => {
-      response.body += chunk.toString('utf8');
+    res.on('data', (raw) => {
+      response += raw.toString('utf8');
     });
 
     res.on('error', (e) => {
@@ -40,9 +40,11 @@ exports.handler = (event, context, callback) => {
       callback(null, {
         statusCode: 200,
         headers: {
-          "Access-Control-Allow-Origin": "*" // do not deploy this to a public endpoint
+            "Access-Control-Allow-Origin": "http://localhost:4200",
+            "Access-Control-Allow-Methods": "POST",
+            "Access-Control-Allow-Headers": "Content-Type"
         },
-        body: JSON.stringify(response)
+        body: response
       });
     })
   })
