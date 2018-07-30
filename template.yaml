@@ -9,6 +9,7 @@ Resources:
     Properties:
       Handler: lambdaFunction.handler
       Runtime: nodejs8.10
+      Timeout: 15
       Events:
         authToken:
           Type: Api

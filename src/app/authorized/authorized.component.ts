@@ -19,7 +19,11 @@ export class AuthorizedComponent implements OnInit {
 
   retrieveToken(code = this.authCode): Observable<any> {
     const reqUrl = 'http://localhost:3000/authToken';
-    return this.http.get(reqUrl);
+    return this.http.get(reqUrl, {
+      params: {
+        'code': code
+      }
+    });
   }
 
   ngOnInit() {

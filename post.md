@@ -81,10 +81,15 @@ exports.handler = (event, context, callback) => {
 
     callback(null, {
       statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin: "*"
+      },
       body: JSON.stringify(response)
     });
 }
 ```
+
+**Note: Before you deploy this function to AWS Lambda in front of a publicly exposed endpoint, you'll want to change the `Access-Control-Allow-Origin` value to match your application domain.**
 
 The handler callback expects arguments via the format below:
 
@@ -295,7 +300,7 @@ and your `authorized.component.html` file can display the response:
 <p style="text-align: center">
   {{authCode}}
 </p>
-<p style="color: blue">
+<p style="color: blue; text-align: center">
   {{lambdaResponse}}
 </p>
 ```
