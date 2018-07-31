@@ -18,7 +18,6 @@ export class AuthorizedComponent implements OnInit {
   ) {}
 
   retrieveToken(code = this.authCode): Observable<any> {
-    // const reqUrl = 'http://localhost:3000/authToken';
     const reqUrl = 'https://0kar5xll34.execute-api.us-west-1.amazonaws.com/default';
     return this.http.post(reqUrl, {}, {
       params: {

@@ -4,7 +4,6 @@ const https = require('https');
 const github_client_id = process.env.GITHUB_CLIENT_ID;
 const github_client_secret = process.env.GITHUB_CLIENT_SECRET;
 
-
 exports.handler = (event, context, callback) => {
   const authCode = event.queryStringParameters.code;
 
@@ -30,11 +29,6 @@ exports.handler = (event, context, callback) => {
     res.on('data', (raw) => {
       response += raw.toString('utf8');
     });
-
-    res.on('error', (e) => {
-      console.log('Error--------------', e);
-      console.error(e);
-    })
 
     res.on('end', () => {
       callback(null, {
