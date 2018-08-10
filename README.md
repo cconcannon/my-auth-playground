@@ -1,49 +1,69 @@
-# Serverless OAuth2 Three-Legged Authentication and Authorization from Single-Page Applications
+# Three-Legged OAuth 2 from Single-Page Applications: A Use Case for a *Function-as-a-Service*
 
-### *A Step-By-Step Guide to Using AWS Lambda as a Cost-effective, Scalable, and Easily Maintainable Solution for Securely Reaching Authenticated Endpoints*
+### *A Step-By-Step Guide to Using [AWS Lambda](https://aws.amazon.com/lambda/) as a Cost-effective, Scalable, and Easily Maintainable Solution for Securely Reaching [Oauth 2.0](https://oauth.net/2/) Authenticated Endpoints*
 ### **Chris Concannon, Consultant at [Levvel](https://www.levvel.io)**
 ---
 
-Single Page Applications (SPAs) are the modern solution to deliver feature-rich user interfaces on the internet. [Progressive Web Apps](https://developers.google.com/web/progressive-web-apps/), in many ways an evolution of the SPA, are redefining user experiences on mobile devices. Recent developments to SPA frameworks enable [server-side rendering](https://angular.io/guide/universal) to improve SEO and initial load times, two of the major criticisms of such frameworks. One particularly nice benefit to serving such applications is that they are delivered as static assets that run via the JavaScript engine and browser runtime. Using a content delivery network to manage static assets provides an extremely reliable, and very inexpensive, solution for serving up a website. For example, [hosting an SPA on your custom domain via AWS S3, Route 53, and Cloudfront costs as little as $0.50/month](https://aws.amazon.com/getting-started/projects/host-static-website/). Eliminating the SPA application server(s) reduces costs and complexity associated with hosting and maintaining the SPA.
+#### About Single Page Applications
 
-One problem of serving an SPA via a static asset bucket and CDN, rather than a server, is that the entirety of the application can be inspected by anyone. This is a problem for applications that perform user-authenticated requests, as is the case with applications that use the [industry-standard OAuth 2.0 protocol](https://oauth.net/2/). The OAuth 2.0 standard is utilized by API's from many providers, including [Slack](https://api.slack.com/docs/oauth), [cloud.gov](https://cloud.gov/docs/apps/leveraging-authentication/), [Google](https://developers.google.com/identity/protocols/OAuth2), [Stripe](https://stripe.com/docs/connect/oauth-reference), [Instagram](https://www.instagram.com/developer/authentication/), [GitHub](https://developer.github.com/apps/building-oauth-apps/), and many more.
+[Single Page Applications (SPAs)](https://medium.com/@pshrmn/demystifying-single-page-applications-3068d0555d46) are the modern solution to deliver feature-rich user interfaces for web applications. Recent developments to SPA frameworks enable [server-side rendering](https://angular.io/guide/universal) to improve SEO and initial load times, two of the major criticisms of such frameworks. One advantage to serving a SPA is that the application can be delivered as static assets that run on the client-side via the JavaScript engine and browser runtime. SPA's that gather their dynamic data from publicly exposed endpoints can be served reliably, quickly, and inexpensively via a combination of cloud simple storage (such as [AWS S3](https://aws.amazon.com/s3/)) and a Content Delivery Network (CDN) (such as [AWS Cloudfront](https://aws.amazon.com/cloudfront/)). For example, `https://www.your-single-page-application.com` can be [hosted via AWS S3, Route 53, and Cloudfront for as little as $0.50/month](https://aws.amazon.com/getting-started/projects/host-static-website/). Costs and complexity are reduced by eliminating the need for a dynamic web application server (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)).
 
-Simply put, if a malicious party obtains your registered application secret for OAuth 2.0 authentication, then stealing all the user-accessible API data becomes easy. Everything that is accessible to your application is accessible to anyone (or any script) that has access to your user's browser and your application secret. It is impossible to securely hide the application's API secret within the SPA code that runs in the browser. SPAs that consume data via OAuth protocols traditionally use a server to hide their application secret as a local environment variable. Performing the authentication from an application server, rather than the user's browser, allows for the API token grant and renewal process to be shielded from the public eye.
+#### Static vs. Dynamic Web Servers for Single Page Applications
 
-When using OAuth 2.0 to make API calls from a serverless application, how can you successfully grant your application user an API token without exposing your SPA API secret? Performing the token exchange and renewal with AWS Lambda is one option that is cost-effective, reliable, automatically scalable, and easilyu maintained. This post will provide an example of OAuth2 user authentication and token retrieval, while hiding the SPA application secret behind AWS API Gateway and AWS Lambda.
+Serving an SPA as a static asset from a content delivery network creates a security challenge when you require the application to utilize things you want to keep private. When SPA frameworks were created, a bundled JavaScript browser application was traditionally served from a dynamic web application server process (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)). This dynamic server structure can give the application access to private environment properties of the server, such as the NodeJS `process.env`. A dynamic server process which serves an application will, by framework design, allow that application to access the local server process environment. This environment can be used to store variables related to application configuration, including variables which should not be exposed publicly. In the context of the industry-standard [OAuth 2.0 protocol](https://oauth.net/2/), this means that the server process stores the `client_secret` belonging to the application. The `client_secret` value is written to the environment separately from the application code/assets. As a result, the application can read the `client_secret` value from the environment without allowing the value to be exposed to the public. The `client_secret` is a mandatory piece of the authorization flow, and should **never** be exposed publicly in the application code.
+
+When you serve a bundled SPA from a purely static web server or host (e.g. NGINX, Github Pages, or AWS S3), you (and the application) do not have access to `process.env` or any other non-public environment property. The server is not designed to interact with the browser beyond straightforward HTTP request/response cycles. The user makes a request for the application, the application is delivered to their browser, and the browser runs the application. The application is not connected to an environment process that you, the creator, are able to configure. This makes it hard to maintain a `client_secret` as a private variable. The entirety of the application code can be read and inspected, as can any HTTP requests sent to/from the application via the user's browser.
+
+#### Why the Focus on OAuth 2 and AWS Products/Services
+
+This post covers the narrow intersection of Three-legged OAuth 2 with statically-served Single Page Applications served via AWS S3 and AWS API Gateway. The world of serverless application structure and authentication has so many more topics of worthy (and very related) discussion that I won't be addressing, such as [OpenID Connect](http://openid.net/connect/), and competitors to AWS services. There are compelling reasons why the difficult intersection of the chosen topics is particularly worth examining separately from broader subjects of authentication and serverless structure. Simply put, my choices are based on a few major factors. AWS provides great documentation, easy free tier setup and use, and useful/relevant developer tools. OAuth 2 is a well-proven and relevant to many authentication applications.
+
+The [Oauth 2](https://oauth.net/2/) standard is extremely commonplace. Parts of the standard are implemented by API's built by [Slack](https://api.slack.com/docs/oauth), [cloud.gov](https://cloud.gov/docs/apps/leveraging-authentication/), [Google](https://developers.google.com/identity/protocols/OAuth2), [Stripe](https://stripe.com/docs/connect/oauth-reference), [Instagram](https://www.instagram.com/developer/authentication/), [GitHub](https://developer.github.com/apps/building-oauth-apps/), and many more.
+
+#### Security Challenges of the Chosen Implementation
+
+Traditionally, an application's [Oauth 2](https://oauth.net/2/) credentials are securely stored as environment variables on a dynamic application server (*a la* Node/Express, described earlier). Obviously, a serverless application (such as the $0.50/month solution linked in the above paragraph) does not have the option to store it's API credentials without exposing those credentials to the public eye. Techniques (*bad ideas!*) exist for obfuscating credentials within application code, such as concatenating credentials to the end of asset identifier strings, or using an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniqes are ticking bombs waiting to explode and publish your application secrets to the world.
+
+This is a problem because of the liability it creates for you, the application owner. If a malicious party obtains your registered application secret for [Oauth 2](https://oauth.net/2/) authentication, then stealing all the user-accessible API data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault because you mishandled your privileged application credentials. Everything that is accessible to your application is accessible to anyone (or any script) that has access to your user's browser and your application's `client_secret`. It is impossible to securely hide the application's API secret within the SPA code that runs in the browser.
+
+#### Using a Function-as-a-Service (AWS Lambda) to Handle Private Details
+
+So, what do we do if we want our application to access API's that use [Oauth 2](https://oauth.net/2/), but we also want the cost benefits and simplicity of serving our application via static storage and a CDN? When using [Oauth 2](https://oauth.net/2/) to make API calls from a serverless application, how can you successfully grant your application user an API token without exposing your SPA API secret?
+
+[Functions-as-a-Service (FaaS)](https://medium.com/@BoweiHan/an-introduction-to-serverless-and-faas-functions-as-a-service-fb5cec0417b2), such as [AWS Lambda](https://aws.amazon.com/lambda/), provide a great avenue to solve our problem. Performing the token exchange and renewal with a FaaS such as [AWS Lambda](https://aws.amazon.com/lambda/) is cost-effective, reliable, inherently scalable, and easily maintained. This post will provide an example of OAuth2 user authentication and `access_token` grant, while hiding the SPA application secret behind [AWS API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/).
 
 ---
 ## Overview
 ---
 
 This post will walk through several steps to achieve our goal of Oauth2 authenticated calls to a public API. The prerequisites are related to:
-1. API credentials
-2. AWS credentials
-3. Docker installation
-4. Node and npm
-5. AWS SAM CLI installation
+1. API Credentials
+2. AWS Credentials
+3. Docker
+4. Node, NPM, and Angular CLI
+5. AWS SAM CLI
 
 ---
 ## Prerequisites
 ---
 
-### API Registration
+### API Credentials
 
-The example of this post uses the [GitHub API](https://developer.github.com/). GitHub V3 uses the OAuth2 protocol (among other methods) to authenticate users via web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
+The example of this post uses the [GitHub API](https://developer.github.com/). GitHub V3 uses the OAuth2 protocol (among other methods) to authenticate users and web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
 
-You should also have personal account credentials to test authentication and authorization when retrieving user data.
+This example also assumes that you are a registered GitHub user, as you will be logging into GitHub in order to authorize your own application, complete the authentication process, and receive an `access_token`.
 
 ### AWS Credentials
-AWS Credentials are required to set up and use AWS Lambda services. A basic familiarity with AWS Lambda is also required. Those who are starting from a position of zero familiarity with AWS Lambda (as I did) can find an awesome resource in the [Serverless Application Model Simple App](https://docs.aws.amazon.com/lambda/latest/dg/test-sam-cli.html#sam-cli-simple-app).
+AWS Credentials are required to set up and use [AWS Lambda](https://aws.amazon.com/lambda/) services. A basic familiarity with [AWS Lambda](https://aws.amazon.com/lambda/) is also required. Those who are starting from a position of zero familiarity with [AWS Lambda](https://aws.amazon.com/lambda/) (as I did) can find an awesome resource in the [Serverless Application Model Simple App](https://docs.aws.amazon.com/lambda/latest/dg/test-sam-cli.html#sam-cli-simple-app).
 
 ### Docker
 You must have Docker installed for the SAM CLI to run. [Docker Community Edition](https://store.docker.com/search?type=edition&offering=community) is a free download.
 
-### Node, NPM, Angular
+### Node, NPM, and Angular CLI
 Since this post is explicitly describing authentication in the context of serverless applications, we'll install dependencies with [npm](https://www.npmjs.com/). We'll also be using the [Angular CLI](https://cli.angular.io) to generate an Angular 6 application and components.
 
 ### AWS SAM CLI
-We will use the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to build and run our AWS Lambda function in our local environment, before uploading it to AWS and providing access via an API Gateway public endpoint.
+We will use the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to build and run our [AWS Lambda](https://aws.amazon.com/lambda/) function in our local environment, before uploading it to AWS and providing access via an API Gateway public endpoint.
 
 Tip: Installing the AWS SAM CLI is easier with npm than with pip. The AWS documentation suggests using pip, but I ran into problems and lengthy work-arounds when trying to use pip. Trying to install Python/pip is particularly difficult because Homebrew installs Python 3.7, with no other versions available. The required Python version for SAM CLI installation is 3.6. You'll need a different solution than Homebrew to install Python 3.6 and the associated pip.
 
@@ -73,9 +93,9 @@ Resources:
             Path: /authToken
             Method: any
 ```
-Notice the "Runtime" and "Handler" properties. This example will use Node 8.10 to execute the function, and ES6 JavaScript as our language of choice. AWS Lambda provides multiple execution languages/environments - see the [official documentation](https://aws.amazon.com/lambda/getting-started/) for available choices.
+Notice the "Runtime" and "Handler" properties. This example will use Node 8.10 to execute the function, and ES6 JavaScript as our language of choice. [AWS Lambda](https://aws.amazon.com/lambda/) provides multiple execution languages/environments - see the [official documentation](https://aws.amazon.com/lambda/getting-started/) for available choices.
 
-In our example, the SAM CLI is going to look for the AWS Lambda Function on an exported property called `handler` from a file named `lambdaFunction.js`. Let's make sure those exist. Create `lambdaFunction.js` and paste this skeleton of an AWS Lambda handler function:
+In our example, the SAM CLI is going to look for the [AWS Lambda](https://aws.amazon.com/lambda/) Function on an exported property called `handler` from a file named `lambdaFunction.js`. Let's make sure those exist. Create `lambdaFunction.js` and paste this skeleton of an [AWS Lambda](https://aws.amazon.com/lambda/) handler function:
 ```
 'use strict';
 
@@ -95,7 +115,7 @@ exports.handler = (event, context, callback) => {
 }
 ```
 
-**Note: Before you deploy this function to AWS Lambda in front of a publicly exposed endpoint, you'll want to change the `Access-Control-Allow-Origin` value to match your application domain.**
+**Note: Before you deploy this function to [AWS Lambda](https://aws.amazon.com/lambda/) in front of a publicly exposed endpoint, you'll want to change the `Access-Control-Allow-Origin` value to match your application domain.**
 
 The handler callback expects arguments via the format below:
 
@@ -127,7 +147,7 @@ Step 5 is the difficult point to handle for serverless applications, because the
 ## Create a UI for simulation
 ---
 
-This section will use a small, single-component Angular app to demonstrate the integration of your Single-Page Application, AWS API Gateway, and your AWS Lambda function. You don't have to use an Angular app - the fundamentals of the process are transferrable to other single-page application frameworks. Use React, Vue, etc. as you please.
+This section will use a small, single-component Angular app to demonstrate the integration of your Single-Page Application, AWS API Gateway, and your [AWS Lambda](https://aws.amazon.com/lambda/) function. You don't have to use an Angular app - the fundamentals of the process are transferrable to other single-page application frameworks. Use React, Vue, etc. as you please.
 
 If you don't have the Angular CLI installed, run
 
@@ -314,7 +334,7 @@ and your `authorized.component.html` file can display the response:
 We are now returning a response to our UI from our Lambda function callback, via a configuration that will map to AWS API Gateway! Now all we need to do is make the Lambda function handle the logic of the target API code exchange for an authenticated user token.
 
 ---
-## OAuth2 Token Exchange
+## OAuth 2.0 Access Token Request
 ---
 When we make the initial call to our Lambda function, we will pass the `code` url param. We will assign the `Client ID` and `Client Secret` in the component for now (**Do Not Commit/Push this Code With Your Secret Credentials**). We will pull these values from local environment variables upon deployment to AWS.
 
@@ -391,7 +411,7 @@ Paste your GitHub client_id and client_secret values into the variable declarati
 
 ![Webpage with a link to GitHub Authentication, a code value, and a response string with access_token](/screenshots/token_return.png)
 
-The code above does not handle errors and does not handle responses other than the "Happy Path" `200 OK` scenario, but serves as a starting point for the AWS Lambda function deployment.
+The code above does not handle errors and does not handle responses other than the "Happy Path" `200 OK` scenario, but serves as a starting point for the [AWS Lambda](https://aws.amazon.com/lambda/) function deployment.
 
 Notice that we are whitelisting our `http://localhost:4200` endpoint of the Angular application. The domain of the deployed application will need to be whitelisted as well. **Setting the HTTP headers above is important to satisfy browser CORS protection**.
 
