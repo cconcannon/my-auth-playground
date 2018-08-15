@@ -27,7 +27,7 @@ This post covers the narrow intersection of OAuth 2 with statically-served Singl
 
 Traditionally, an application's [Oauth 2](https://oauth.net/2/) credentials are securely stored as environment variables on a dynamic application server (*a la* Node/Express, described earlier). Obviously, a serverless application (such as the $0.50/month solution linked in the above paragraph) does not have the option to store it's API credentials without exposing those credentials to the public eye. Techniques (*bad ideas!*) exist for obfuscating credentials within application code, such as concatenating credentials to the end of asset identifier strings, or using an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniqes are ticking bombs waiting to explode and publish your application secrets to the world.
 
-This is a problem because of the liability it creates for you, the application owner. If a malicious party obtains your registered application secret for [Oauth 2](https://oauth.net/2/) authentication, then stealing all the user-accessible API data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault because you mishandled your privileged application credentials. Everything that is accessible to your application is accessible to anyone (or any script) that has access to your user's browser and your application's `client_secret`. It is impossible to securely hide the application's API secret within the SPA code that runs in the browser.
+This is a problem because of the liability it creates for you, the application owner. If a malicious party obtains your registered application secret for [Oauth 2](https://oauth.net/2/) authentication, then stealing all your user's API-exposed data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault because you mishandled your privileged application credentials. Everything that is accessible to your application is accessible to anyone (or any script) that has access to your user's browser and your application's `client_secret`. It is impossible to securely hide the application's API secret within the SPA code that runs in the browser.
 
 #### Using a Function-as-a-Service (AWS Lambda) to Handle Private Details
 
@@ -55,7 +55,7 @@ This post will walk through several steps to achieve our goal of Oauth2 authenti
 
 ### API Credentials
 
-The example of this post uses the [GitHub API](https://developer.github.com/). GitHub V3 uses the OAuth2 protocol (among other methods) to authenticate users and web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
+The example of this post uses the [GitHub V3 API](https://developer.github.com/v3/). GitHub V3 uses the OAuth2 protocol to authenticate users and web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
 
 This example also assumes that you are a registered GitHub user, as you will be logging into GitHub in order to authorize your own application, complete the authentication process, and receive an `access_token`.
 
@@ -136,18 +136,25 @@ These two files are all you need to start developing your Lambda function and AP
 Once the SAM api is running, open your browser and navigate to [localhost:3000/authToken](http://localhost:3000/authToken). AWS starts a node runtime and runs your handler function behind the scenes, but eventually your browser will load the page with "This is my Lambda function" as the body of the document. This is the body property that you defined in the arguments to the callback of your Lambda function.
 
 ---
-## [OAuth2 Review](https://tools.ietf.org/html/rfc6749)
+## OAuth2 - Reviewing the Single Page Application Problem
 ---
 
-The general procedure for [OAuth2 authentication](https://tools.ietf.org/html/rfc6749) is:
-1. Application provides callback domain and obtains public and secret credentials during API registration
-2. Application provides a link for the user to authenticate their identity with the API - the Application's public credentials are provided to the API via this link
-3. User clicks the link, signs in with their own user credentials to the API service, and authorizes the Application to access their data via the API
-4. User is redirected to the callback URL for the Application, with an API-provided temporary authentication code added to params in the redirect
-5. Application receives the temporary authentication code and sends it back to the API, along with application public **and secret** credentials, to obtain a user token.
-6. Application is granted access to the API according to the user-approved scope, so long as the token remains valid
+![OAuth 2 Authorization Code Grant flow](/img/auth_code_oauth2.png)
+*Figure 1. OAuth 2 Flow for Authorization Code Grant, Using a Dynamic Application Server*
 
-Step 5 is the difficult point to handle for serverless applications, because the application secret needs to be used in order to obtain an access token. Exposing your application secret API credentials publicly is a security risk that could expose your user's data to malicious parties outside your application domain. Anyone with ill intents could observe the user's browser events and begin making authenticated API calls with your application credentials.
+Figure 1 is shared again here to demonstrate the most common way of implementing [OAuth2 Authorization Code Grant flow](https://tools.ietf.org/html/rfc6749) with a dynamic application server.
+
+Steps 5-7, after the user authorizes your application for the target API, are the steps that are difficult to handle for statically-served single page applications. The steps after the `code` is sent to your application require your application secret to be sent to the authorization server in order to obtain an access token. Exposing your application secret API credentials publicly is a security risk that could expose your user's data to malicious parties outside your application domain. Anyone with ill intents could observe the user's browser events and begin making authenticated API calls with your application credentials.
+
+We will implement a solution that follows the flow of Figure 2, shared again below.
+
+![OAuth 2 Authorization Code Grant using AWS Lambda without a Dynamic Application Server](/img/lambda_auth_code_oauth2.png)
+*Figure 2. OAuth 2 Flow for Authorization Code Grant, Using AWS Lambda without a Dynamic Application Server*
+
+In order to aid understanding, and to provide an overview of the rest of this post, a diagram is provided below which describes how we will comprehensively build a demo application that operates according to Figure 2.
+
+![Outline of Steps to Build Figure 2 from 'scratch'](/img/build_oauth2_lambda_demo.png)
+*Figure 3. Diagram Showing the Steps to Come in Building the Demo Described Here*
 
 ---
 ## Create a UI for simulation
