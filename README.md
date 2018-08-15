@@ -278,6 +278,7 @@ Whew, that was a lot. Now when you visit [localhost:4200](http://localhost:4200)
 Now, when you successfully authorize our application from GitHub's authorization page, you'll see something like this:
 
 ![web page with authentication link, and a text line with code param value](/img/authorized.png)
+*Figure 4: The SPA reads the `code` parameter - this will be sent to the Lambda function*
 
 ---
 ## After User is Authenticated, Call the Local SAM CLI Endpoint to Run the Lambda Function
@@ -423,6 +424,7 @@ retrieveToken(code = this.authCode): Observable<any> {
 Paste your GitHub client_id and client_secret values into the variable declarations near the top of the file, save your changes, and perform Authentication via GitHub through your Angular app UI. You should be able to pipe the response from GitHub's authentication endpoint to your application UI! We can see a token coming back from GitHub.
 
 ![Webpage with a link to GitHub Authentication, a code value, and a response string with access_token](/img/token_return.png)
+*Figure 5: The SPA retrieves the `access_token` without refreshing as a result of an asynchronous call to the Lambda function*
 
 The code above does not handle errors and does not handle responses other than the "Happy Path" `200 OK` scenario, but serves as a starting point for the [AWS Lambda](https://aws.amazon.com/lambda/) function deployment.
 
@@ -443,6 +445,7 @@ const github_client_secret = process.env.GITHUB_CLIENT_SECRET;
 5) Set the local environment variables (and optionally encrypt them with a custom key from AWS KMS)
 
 ![Screenshot of AWS Console Lambda Environment Variables](/img/env_variables.png)
+*Figure 6: Encrypting the Lambda function's environment variables, including the `client_secret`*
 
 ---
 ## Setting up a Publicly Exposed API Endpoint
@@ -450,12 +453,14 @@ const github_client_secret = process.env.GITHUB_CLIENT_SECRET;
 AWS API Gateway allows quick setup of a publicly exposed endpoint to your Lambda function. Go through the quick process of creating a new API that points to your Lambda function (your function name will auto-populate when you go to search for it in the setup process). Also configure validation settings in order to avoid running your Lambda function for invalid requests, thus reducing the compute time and costs to run your Lambda function.
 
 ![AWS API Gateway Settings](/img/aws_api_gateway_settings.png)
+*Figure 7: API Gateway Configuration*
 
 **I am not a cloud security expert, and I don't pretend to be one - AWS provides [documentation about controlling access to an API Gateway endpoint](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-to-api.html). It is possible to restrict access to your endpoint via Virtual Private Cloud, [Lambda Authorizers](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html), and other methods. Use them according to your needs.**
 
 Once your public endpoint and configuration are set up, deploy the API and copy the endpoint from the Dashboard tab on the left of the API Gateway management screen:
 
 ![API Dashboard with endpoint](/img/api_dashboard.png)
+*Figure 8: The public API Gateway endpoint can be viewed via the Dashboard tab*
 
 Update your `authorized.component.ts` file with the new endpoint, and *voila!* Your application is now fetching the authentication token via your Lambda function, with an entry point via AWS API Gateway.
 ```
