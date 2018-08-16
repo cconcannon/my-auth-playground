@@ -1,4 +1,4 @@
-# Three-Legged OAuth 2 from Single-Page Applications: A Use Case for a *Function-as-a-Service*
+# Three-Legged OAuth2 from Single-Page Applications: A Use Case for a *Function-as-a-Service*
 
 ### *A Step-By-Step Guide to Using [AWS Lambda](https://aws.amazon.com/lambda/) as a Cost-effective, Scalable, and Easily Maintainable Solution for Securely Reaching [OAuth 2.0](https://oauth.net/2/) Authenticated Endpoints*
 ### **Chris Concannon, Consultant at [Levvel](https://www.levvel.io)**
@@ -6,50 +6,48 @@
 
 #### About Single Page Applications
 
-[Single Page Applications (SPAs)](https://medium.com/@pshrmn/demystifying-single-page-applications-3068d0555d46) are the modern solution to deliver feature-rich user interfaces for web applications. Recent developments to SPA frameworks enable [server-side rendering](https://angular.io/guide/universal) to improve SEO and initial load times, two of the major criticisms of such frameworks. One great advantage to serving a SPA is that the SPA can be served as a static asset. SPA's can be served reliably, quickly, and inexpensively via a combination of cloud simple storage (such as [AWS S3](https://aws.amazon.com/s3/)) and a Content Delivery Network (CDN) (such as [AWS Cloudfront](https://aws.amazon.com/cloudfront/)). For example, `https://www.your-single-page-application.com` can be [hosted via AWS S3, Route 53, and Cloudfront for as little as $0.50/month](https://aws.amazon.com/getting-started/projects/host-static-website/). Costs and complexity are reduced by eliminating the need for a dynamic web application server (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)).
+[Single Page Applications (SPAs)](https://medium.com/@pshrmn/demystifying-single-page-applications-3068d0555d46) are the modern solution to deliver feature-rich user interfaces for web applications. Recent developments to SPA frameworks enable [server-side rendering](https://angular.io/guide/universal) to improve SEO and initial load times, two of the major criticisms of such frameworks. One great advantage to serving a SPA is that the SPA can be served as a static asset. SPA's can be served reliably, quickly, and inexpensively via a combination of cloud simple storage (such as [AWS S3](https://aws.amazon.com/s3/)) and a [Content Delivery Network (CDN)](https://developer.mozilla.org/en-US/docs/Glossary/CDN) (such as [AWS Cloudfront](https://aws.amazon.com/cloudfront/)). For example, `https://www.your-single-page-application.com` can be [hosted via AWS S3, Route 53, and Cloudfront for as little as $0.50/month](https://aws.amazon.com/getting-started/projects/host-static-website/). Costs and complexity are reduced by eliminating the need for a dynamic web application server (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)).
 
 #### What's Hard About Accessing Dynamic Data from a Statically-Served SPA?
 
-Serving an SPA from a static asset server has many benefits, but also creates a security challenge when you require the application to dynamically handle private data (in other words, when you interact with privately-stored user data after the user is authenticated). Such data is often exposed through public API's that only allow access to authorized applications and users (see: [Google](https://developers.google.com/identity/protocols/OAuth2), [Facebook](https://developers.facebook.com/docs/facebook-login/overview), [Stripe](https://stripe.com/docs/connect/oauth-reference), etc.). The [OAuth 2.0 protocol](https://oauth.net/2/) is perhaps the most commonly used and known set of guidelines for authenticating HTTP requests via publicly-exposed API's. The [OAuth2 Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) process requires an application to submit a `client_secret` as part of the protocol. The `client_secret` is unique to the application, and should never be shared or exposed. **The requirement to hide the `client_secret` is a challenge for statically-served web applications.**
+Serving an SPA from a static asset server has many benefits, but also creates a security challenge when you require the application to dynamically handle private data (i.e. when you interact with privately-stored user data after the user is authenticated). Such data is often exposed through public API's that only allow access to authorized applications and users (see: [Google](https://developers.google.com/identity/protocols/OAuth2), [Facebook](https://developers.facebook.com/docs/facebook-login/overview), [Stripe](https://stripe.com/docs/connect/oauth-reference), etc.). The [OAuth 2.0 protocol](https://oauth.net/2/) is perhaps the most commonly used and known set of guidelines for authenticating HTTP requests via publicly-exposed API's. The [OAuth2 Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) process requires an application to submit a `client_secret` as part of the protocol. The `client_secret` is unique to the application, and should never be shared or exposed. **The requirement to hide the `client_secret` is a challenge for statically-served web applications.**
 
-#### OAuth2 Authorization Code Grant Overview
+#### [OAuth2](https://oauth.net/2/) [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) Overview
 
-Traditionally, a dynamic application server (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)) will store an application's [OAuth 2](https://oauth.net/2/) credentials (the `client_secret`) as environment variables. Node exposes these variables via the `process.env` property. When an application owner stores application secrets on the server process, the application can read the `client_secret` value from the server environment without exposing that value to the public. Remember that the `client_secret` is a mandatory piece of the authorization flow, and should **never** be exposed publicly in the application code.
+Traditionally, a dynamic application server (i.e. [NodeJS](https://nodejs.org/) running [Express](https://expressjs.com/)) will store an application's [OAuth2](https://oauth.net/2/) credentials (the `client_secret`) as environment variables. Node exposes these variables via the `process.env` property. When an application owner stores application secrets on the server process, the application can read the `client_secret` value from the server environment without exposing that value to the public. Remember that the `client_secret` is a mandatory piece of the authorization workflow, and should **never** be exposed publicly in the application code.
 
 
-![Diagram of OAuth 2 Authorization Code Grant Flow](/img/auth_code_oauth2.png)
-*Figure 1. OAuth 2 Flow for Authorization Code Grant, Using a Dynamic Application Server.*
+![Diagram of OAuth2  [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/)](/img/auth_code_oauth2.png)
+*Figure 1. [OAuth2](https://oauth.net/2/) Workflow for Authorization Code Grant, Using a Dynamic Application Server.*
 
-The Authorization Code Grant depicted in the diagram above is dependent on the application server's ability to receive a `code` parameter from a browser request (step 5), and subsequently send a request directly to the authorization server, without going through the user's browser (step 6). This is not possible for an SPA served from a static asset server. **A static asset server handles 2-way communication; it will not handle the 3-way communication depicted by steps 5, 6, and 7 above.**
+The  [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) depicted in the diagram above is dependent on three-way communication (hence the name Three-Legged OAuth2). The application server receives the `code` parameter from the running application (step 5), and subsequently send a request *including the `client_secret`* directly to the authorization server, without going through the user's browser (step 6). This is not possible for an SPA served from a static asset server. **A static asset server handles two-way communication; it will not handle the three-way communication depicted by steps 4, 5, 6, and 7 above.**
 
-*Note: The OAuth 2 protocol describes several types of grant types. This post focuses on using the Authorization Code Grant. Another grant type, the Implicit Grant, is designed for mobile applications and single-page applications, where the `client_secret` confidentiality is not guaranteed. The Implicit Grant is not as widely offered, and it does not provide identity verification (whereas the Authorization Code Grant does). If your use case allows for use of the Implicit Grant, and it is implemented by your target API, then check out [the Implicit Grant documentation](https://tools.ietf.org/html/rfc6749#section-1.3.2). If you require the Authorization Code Grant, carry on!*
+*Note: The OAuth2 protocol describes several types of grant types. This post focuses on using the Authorization Code Grant. Another grant type, the Implicit Grant, is designed for mobile applications and single-page applications, where the `client_secret` confidentiality is not guaranteed. The Implicit Grant is not as widely offered, and it does not provide identity verification (whereas the  [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) does). If your use case allows for use of the Implicit Grant, and it is implemented by your target API, then check out [the Implicit Grant documentation](https://tools.ietf.org/html/rfc6749#section-1.3.2). If you require the Authorization Code Grant, carry on!*
 
 #### So, What's at Stake for a Statically-Served SPA?
 
-Obviously, an application delivered "statically" ([such as the $0.50/month solution mentioned above](https://aws.amazon.com/getting-started/projects/host-static-website/)) does not have access to `process.env`; it does not have the option to store it's API credentials without exposing those credentials to the public eye. Techniques (*bad ideas!*) exist which *attempt* to hide credentials within application code. Some examples of these techniques include the concatenation of credentials to the end of asset identifier strings, or the use of an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniqes can be easily hacked, especially when the hacker monitors the traffic coming to and from the application. Using insecure, ill-designed strategies will eventually result in theft of your application secrets.
+An application served via static storage ([such as the $0.50/month solution mentioned above](https://aws.amazon.com/getting-started/projects/host-static-website/)) does not have the ability to facilitate three-way communication to complete the authentication process described in the [OAuth2](https://oauth.net/2/) Authorization Code Grant. Therefore, in order to complete the three-legged process, the application would need to perform step 6 above. Step 6 requires sending the `client_secret` to the authorization server, and the application would have to initiate this from the user's browser. This step would cause a security vulnerability (because the `client_secret` should never be exposed publicly!). Techniques (*very bad ideas!*) exist which *attempt* to hide credentials such as the `client_secret` within application code. Some examples of these techniques include the concatenation of credentials to the end of asset identifier strings, or the use of an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniques can be easily hacked, especially when the hacker monitors the traffic coming to and from the application. Using insecure, ill-designed strategies will eventually result in theft of your application secrets.
 
-Theft of application secrets results in a liability for you, the application owner. If a malicious party obtains your registered application secret for [OAuth 2](https://oauth.net/2/) authentication, then stealing all your user's API-exposed data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault; Securely handling privileged application credentials is the application owner's responsibility. It is impossible to securely hide a private value (such as `client_secret`) within statically-served SPA code.
-
-When you serve an SPA from a static asset server (e.g. NGINX, Azure Storage, or AWS S3), you (and the application) do not have access to private environment properties such as `process.env`. The server is built to handle 2-way communication, which means that your entire application code is delivered as-is to the user's browser. The server will not make further communications on the application's behalf. This makes it hard to maintain a `client_secret` as a private variable. The entirety of the application code can be read and inspected, as can any HTTP requests sent to/from the application via the user's browser.
+Theft of application secrets results in a liability for you, the application owner. If a malicious party obtains your registered application secret for [OAuth2](https://oauth.net/2/) authentication, then stealing all your user's API-exposed data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault; Securely handling privileged application credentials is the application owner's responsibility. It is impossible to securely hide a private value (such as `client_secret`) within statically-served SPA code.
 
 #### Using a Function-as-a-Service (AWS Lambda) to Handle Private Details
 
-So, what do we do if we want our application to access API's that use [OAuth 2](https://oauth.net/2/), but we also want the cost benefits, reliability, speed, and simplicity of serving our application via static storage solutions and a CDN? When using [OAuth 2](https://oauth.net/2/) to make API calls from a serverless application, how can you successfully grant your application user an API token without exposing your SPA API secret?
+So, what do we do if we want our application to access API's that use [OAuth2](https://oauth.net/2/), but we also want the cost benefits, reliability, speed, and simplicity of serving our application via static storage solutions and a CDN? When using [OAuth2](https://oauth.net/2/) to make API calls from a serverless application, how can you successfully grant your application user an API token without exposing your SPA API secret?
 
-[Functions-as-a-Service (FaaS)](https://medium.com/@BoweiHan/an-introduction-to-serverless-and-faas-functions-as-a-service-fb5cec0417b2), such as [AWS Lambda](https://aws.amazon.com/lambda/), provide a great avenue to solve our problem. Performing the token exchange and renewal with a FaaS such as [AWS Lambda](https://aws.amazon.com/lambda/) is cost-effective, reliable, inherently scalable, and easily maintained. This post will provide an example of OAuth2 user authentication and `access_token` grant, while hiding the SPA application secret behind [AWS API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/).
+[Functions-as-a-Service (FaaS)](https://medium.com/@BoweiHan/an-introduction-to-serverless-and-faas-functions-as-a-service-fb5cec0417b2), such as [AWS Lambda](https://aws.amazon.com/lambda/), provide a great avenue to solve our problem. Performing the token exchange and renewal with a FaaS such as [AWS Lambda](https://aws.amazon.com/lambda/) is cost-effective, reliable, inherently scalable, and easily maintained. This post will provide an example of [OAuth2](https://oauth.net/2/) user authentication and `access_token` grant, while hiding the SPA application secret behind [AWS API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/).
 
-![OAuth 2 Authorization Code Grant using AWS Lambda without a Dynamic Application Server](/img/lambda_auth_code_oauth2.png)
-*Figure 2. OAuth 2 Flow for Authorization Code Grant, Using AWS Lambda without a Dynamic Application Server*
+![OAuth2 [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) using AWS Lambda without a Dynamic Application Server](/img/lambda_auth_code_oauth2.png)
+*Figure 2. OAuth2 Flow for Authorization Code Grant, Using AWS Lambda without a Dynamic Application Server*
 
-#### Why the Focus on OAuth 2 and AWS Products/Services
+#### Why the Focus on OAuth2 and AWS Products/Services
 
-This post covers the narrow intersection of OAuth 2 with statically-served Single Page Applications served via AWS S3 and AWS API Gateway. The world of serverless application structure and authentication has so many more topics of worthy (and very related) discussion that I won't be addressing, such as [OpenID Connect](http://openid.net/connect/), and competitors to AWS services (such as [Azure Storage](https://azure.microsoft.com/en-us/blog/azure-storage-static-web-hosting-public-preview/)). There are compelling reasons why the difficult intersection of the chosen topics is particularly worth examining separately from broader subjects of authentication and serverless structure. Simply put, my choices are based on a few major factors. AWS provides great documentation, easy free tier setup and use, and useful/relevant developer tools. OAuth 2 is a well-proven authentication standard which is relevant to many applications. Portions of [Oauth 2](https://oauth.net/2/) protocol are implemented by API's built by [Slack](https://api.slack.com/docs/oauth), [cloud.gov](https://cloud.gov/docs/apps/leveraging-authentication/), [Google](https://developers.google.com/identity/protocols/OAuth2), [Stripe](https://stripe.com/docs/connect/oauth-reference), [Instagram](https://www.instagram.com/developer/authentication/), [GitHub](https://developer.github.com/apps/building-oauth-apps/), and many more.
+This post covers the narrow intersection of OAuth2 with statically-served Single Page Applications served via AWS S3 and AWS API Gateway. The world of serverless application structure and authentication has so many more topics of worthy (and very related) discussion that I won't be addressing, such as [OpenID Connect](http://openid.net/connect/), and competitors to AWS services (such as [Azure Storage](https://azure.microsoft.com/en-us/blog/azure-storage-static-web-hosting-public-preview/)). There are compelling reasons why the difficult intersection of the chosen topics is particularly worth examining separately from broader subjects of authentication and serverless structure. Simply put, my choices are based on a few major factors. AWS provides great documentation, easy free tier setup and use, and useful/relevant developer tools. OAuth2 is a well-proven authentication standard which is relevant to many applications. Portions of [OAuth2](https://oauth.net/2/) protocol are implemented by API's built by [Slack](https://api.slack.com/docs/oauth), [cloud.gov](https://cloud.gov/docs/apps/leveraging-authentication/), [Google](https://developers.google.com/identity/protocols/OAuth2), [Stripe](https://stripe.com/docs/connect/oauth-reference), [Instagram](https://www.instagram.com/developer/authentication/), [GitHub](https://developer.github.com/apps/building-oauth-apps/), and many more.
 
 ---
 ## Overview
 ---
 
-This post will walk through several steps to achieve our goal of Oauth2 authenticated calls to a public API. The prerequisites are related to:
+This post will walk through several steps to achieve our goal of [OAuth2](https://oauth.net/2/) authenticated calls to a public API. The prerequisites are related to:
 1. API Credentials
 2. AWS Credentials
 3. Docker
@@ -62,7 +60,7 @@ This post will walk through several steps to achieve our goal of Oauth2 authenti
 
 ### API Credentials
 
-The example of this post uses the [GitHub V3 API](https://developer.github.com/v3/). GitHub V3 uses the OAuth2 protocol to authenticate users and web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
+The example of this post uses the [GitHub V3 API](https://developer.github.com/v3/). GitHub V3 uses the [OAuth2](https://oauth.net/2/) protocol to authenticate users and web applications, and this requires the registration of your application in order to obtain a `Client ID` and `Client Secret`
 
 This example also assumes that you are a registered GitHub user, as you will be logging into GitHub in order to authorize your own application, complete the authentication process, and receive an `access_token`.
 
@@ -143,20 +141,20 @@ These two files are all you need to start developing your Lambda function and AP
 Once the SAM api is running, open your browser and navigate to [localhost:3000/authToken](http://localhost:3000/authToken). AWS starts a node runtime and runs your handler function behind the scenes, but eventually your browser will load the page with "This is my Lambda function" as the body of the document. This is the body property that you defined in the arguments to the callback of your Lambda function.
 
 ---
-## OAuth2 - Reviewing the Single Page Application Problem
+## [OAuth2](https://oauth.net/2/) - Reviewing the Single Page Application Problem
 ---
 
-![OAuth 2 Authorization Code Grant flow](/img/auth_code_oauth2.png)
-*Figure 1. OAuth 2 Flow for Authorization Code Grant, Using a Dynamic Application Server*
+![OAuth2 [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) flow](/img/auth_code_oauth2.png)
+*Figure 1. OAuth2 Flow for Authorization Code Grant, Using a Dynamic Application Server*
 
-Figure 1 is shared again here to demonstrate the most common way of implementing [OAuth2 Authorization Code Grant flow](https://tools.ietf.org/html/rfc6749) with a dynamic application server.
+Figure 1 is shared again here to demonstrate the most common way of implementing [OAuth2 [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/)](https://tools.ietf.org/html/rfc6749) with a dynamic application server.
 
 Steps 5-7, after the user authorizes your application for the target API, are the steps that are difficult to handle for statically-served single page applications. The steps after the `code` is sent to your application require your application secret to be sent to the authorization server in order to obtain an access token. Exposing your application secret API credentials publicly is a security risk that could expose your user's data to malicious parties outside your application domain. Anyone with ill intents could observe the user's browser events and begin making authenticated API calls with your application credentials.
 
 We will implement a solution that follows the flow of Figure 2, shared again below.
 
-![OAuth 2 Authorization Code Grant using AWS Lambda without a Dynamic Application Server](/img/lambda_auth_code_oauth2.png)
-*Figure 2. OAuth 2 Flow for Authorization Code Grant, Using AWS Lambda without a Dynamic Application Server*
+![OAuth2  [Authorization Code Grant](https://oauth.net/2/grant-types/authorization-code/) using AWS Lambda without a Dynamic Application Server](/img/lambda_auth_code_oauth2.png)
+*Figure 2. OAuth2 Flow for Authorization Code Grant, Using AWS Lambda without a Dynamic Application Server*
 
 In order to aid understanding, and to provide an overview of the rest of this post, a diagram is provided below which describes how we will comprehensively build a demo application that operates according to Figure 2.
 
@@ -186,13 +184,13 @@ After the app is initiated, run
 cd oauth2-app && ng serve
 ```
 
-Open your browser to [localhost:4200](http://localhost:4200) and you should see "Welcome to app!" with an Angular logo, and some default links. Let's delete this content and start integrating the OAuth2 process!
+Open your browser to [localhost:4200](http://localhost:4200) and you should see "Welcome to app!" with an Angular logo, and some default links. Let's delete this content and start integrating the [OAuth2](https://oauth.net/2/) process!
 
 ---
-## Obtain OAuth2 User Authorization
+## Obtain [OAuth2](https://oauth.net/2/) User Authorization
 ---
 
-This section will cover steps 1-4 in the OAuth2 process described above.
+This section will cover steps 1-4 in the [OAuth2](https://oauth.net/2/) process described above.
 
 Inside your Angular app, open the `app.component.html` file and delete all the content. Paste this simple layout with a link to the API authentication:
 
@@ -209,7 +207,7 @@ When you save the file changes, your Angular server will automatically refresh t
 
 When you are redirected back to your Angular app, you will notice that a `code` param has been added to the URL.
 
-To get the `code` from our url params, we need to use the `ActivatedRoute` interface provided by the `@angular/router` module. To keep our code clean, we are also going to generate a new component to handle the UI features that occur during and after OAuth2 token exchange. Create the new component within the oauth2-app folder:
+To get the `code` from our url params, we need to use the `ActivatedRoute` interface provided by the `@angular/router` module. To keep our code clean, we are also going to generate a new component to handle the UI features that occur during and after [OAuth2](https://oauth.net/2/) token exchange. Create the new component within the oauth2-app folder:
 
 ```
 ng g c authorized
@@ -355,7 +353,7 @@ and your `authorized.component.html` file can display the response:
 We are now returning a response to our UI from our Lambda function callback, via a configuration that will map to AWS API Gateway! Now all we need to do is make the Lambda function handle the logic of the target API code exchange for an authenticated user token.
 
 ---
-## OAuth 2.0 Access Token Request
+## OAuth2 Access Token Request
 ---
 When we make the initial call to our Lambda function, we will pass the `code` url param. We will assign the `Client ID` and `Client Secret` in the component for now (**Do Not Commit/Push this Code With Your Secret Credentials**). We will pull these values from local environment variables upon deployment to AWS.
 
