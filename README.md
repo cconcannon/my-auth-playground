@@ -31,7 +31,7 @@ One option to consider is the [Implicit Grant](https://oauth.net/2/grant-types/i
 
 Another option is the Authorization Code Grant, but with a [Proof Key for Code Exchange (PKCE)](https://oauth.net/2/pkce/). Primarily used in native and mobile apps, PKCE usage is designed for public clients. Unfortunately, is not as widely supported by providers (as using PKCE requires additional support by the authorization server).
 
-This post does not cover implementation of these other [OAuth2](https://oauth.net/2/) options - instead, it demonstrates that a Function-as-a-Service can be used to perform the application server's role in the Authorization Code Grant protocol. This is not a use case that is considered in most literature surrounding the [OAuth2](https://oauth.net/2/) Authorization Code Grant protocol. It is specifically applicable to APIs that require a `client_secret` during the authentication process, and that also provide little or no support for [OAuth2](https://oauth.net/2/) protocols which are designed for public client use. Regardless, the solution put forth in this writing nevertheless provides the inherent level of security provided by the protocol with a confidential client (i.e. a dynamic application server).
+This post does not cover implementation of these other [OAuth2](https://oauth.net/2/) options - instead, it demonstrates that a Function-as-a-Service can be used to perform the application server's role in the Authorization Code Grant protocol. This is not a use case that is considered in most literature surrounding the [OAuth2](https://oauth.net/2/) Authorization Code Grant protocol. It is specifically applicable to APIs that require a `client_secret` during the authentication process, and that also provide little or no support for [OAuth2](https://oauth.net/2/) protocols which are designed for public client use. Regardless, the solution put forth in this writing provides a similar level of security as when the Authorization Code Grant protocol is implemented with a confidential client (i.e. a dynamic application server).
 
 For more information about when each grant can be used, check out [this post](https://medium.com/@robert.broeckelmann/when-to-use-which-oauth2-grants-and-oidc-flows-ec6a5c00d864).
 
@@ -52,10 +52,10 @@ So, what do we do if we want our application to access APIs that use [OAuth2](ht
 
 #### Why the Focus on OAuth2 and AWS Products/Services
 
-This post covers the narrow intersection of OAuth2 with statically-served Single Page Applications served via AWS S3 and AWS API Gateway. The world of serverless application structure and authentication has so many more topics of worthy (and very related) discussion that I won't be addressing, such as [OpenID Connect](http://openid.net/connect/), and competitors to AWS services (such as [Azure Storage](https://azure.microsoft.com/en-us/blog/azure-storage-static-web-hosting-public-preview/)). There are compelling reasons why the difficult intersection of the chosen topics is particularly worth examining separately from broader subjects of authentication and serverless structure. Simply put, my choices are based on a few major factors:
+This post covers the narrow intersection of OAuth2 with statically-served Single Page Applications served via AWS S3 and AWS API Gateway. The world of serverless application structure and authentication has so many more topics of worthy (and very related) discussion that I won't be addressing, such as [OpenID Connect](http://openid.net/connect/), and competitors to AWS services (such as [Azure Storage](https://azure.microsoft.com/en-us/blog/azure-storage-static-web-hosting-public-preview/)). There are compelling reasons why the difficult intersection of the chosen topics is particularly worth examining separately from broader subjects of authentication and statically-served applications. Simply put, my choices are based on a few major factors:
 - AWS provides great documentation
-- Easy free tier setup and use
-- Useful and relevant developer tools
+- AWS provides a free service tier with easy setup and use
+- AWS provides useful and relevant developer tools
 - OAuth2 is a well-proven authentication standard which is relevant to many applications
 
 ---
