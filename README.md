@@ -1,8 +1,11 @@
 # Three-Legged OAuth2 from Single-Page Applications: A Use Case for a *Function-as-a-Service*
 
 ### *A Step-By-Step Guide to Using [AWS Lambda](https://aws.amazon.com/lambda/) as a Cost-effective, Scalable, and Easily Maintainable Solution for Securely Reaching [OAuth 2.0](https://oauth.net/2/) Authenticated Endpoints*
-### **Chris Concannon, Consultant at [Levvel](https://www.levvel.io)**
+### **Chris Concannon**
 ---
+November 5, 2018
+---
+This post originally appeared as an article in the [Levvel Resource Library](https://www.levvel.io/resources/article/detail/three-legged-oauth2-function-as-a-service#setting-up-a-publicly-exposed-api-endpoint).
 
 Source code for the end-result of the demo can be [found here](https://github.com/cconcannon/my-auth-playground).
 
@@ -33,11 +36,11 @@ Another option is the Authorization Code Grant, but with a [Proof Key for Code E
 
 This post does not cover implementation of these other [OAuth2](https://oauth.net/2/) options - instead, it demonstrates that a Function-as-a-Service can be used to perform the application server's role in the Authorization Code Grant protocol. This is not a use case that is considered in most literature surrounding the [OAuth2](https://oauth.net/2/) Authorization Code Grant protocol. It is specifically applicable to APIs that require a `client_secret` during the authentication process, and that also provide little or no support for [OAuth2](https://oauth.net/2/) protocols which are designed for public client use. Regardless, the solution put forth in this writing provides a similar level of security as when the Authorization Code Grant protocol is implemented with a confidential client (i.e. a dynamic application server).
 
-For more information about when each grant can be used, check out [this post](https://medium.com/@robert.broeckelmann/when-to-use-which-oauth2-grants-and-oidc-flows-ec6a5c00d864).
+For more information about when each grant can be used, check out [this post on Medium](https://medium.com/@robert.broeckelmann/when-to-use-which-oauth2-grants-and-oidc-flows-ec6a5c00d864).
 
 #### So, What's at Stake for a Statically-Served SPA?
 
-An application served via static storage ([such as the $0.50/month solution mentioned above](https://aws.amazon.com/getting-started/projects/host-static-website/)) does not have the ability to facilitate three-way communication to complete the authentication process described in the [OAuth2](https://oauth.net/2/) Authorization Code Grant. Therefore, in order to complete the three-legged process, the application would need to perform step 6 above. Step 6 requires sending the `client_secret` to the authorization server, and the application would have to initiate this from the user's browser. This step would cause a security vulnerability (because the `client_secret` should never be exposed publicly!). Techniques (*very bad ideas!*) exist which *attempt* to hide credentials such as the `client_secret` within application code. Some examples of these techniques include the concatenation of credentials to the end of asset identifier strings, or the use of an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniques can be hacked. Using insecure, ill-designed strategies will eventually result in theft of your application secrets.
+An application served via static storage ([such as the $0.50/month solution mentioned above](https://aws.amazon.com/getting-started/projects/host-static-website/)) does not have the ability to facilitate three-way communication to complete the authentication process described in the [OAuth2](https://oauth.net/2/) Authorization Code Grant. Therefore, in order to complete the three-legged process, the application would need to perform step 6 above. Step 6 requires sending the `client_secret` to the authorization server, and the application would have to initiate this from the user's browser. This step would cause a security vulnerability (because the `client_secret` should never be exposed publicly). Techniques (*very bad ideas*) exist which *attempt* to hide credentials such as the `client_secret` within application code. Some examples of these techniques include the concatenation of credentials to the end of asset identifier strings, or the use of an encryption algorithm with the encryption key stored elsewhere in the application. However, these techniques can be hacked. Using insecure, ill-designed strategies will eventually result in theft of your application secrets.
 
 Theft of application secrets results in a liability for you, the application owner. If a malicious party obtains your registered application secret for [OAuth2](https://oauth.net/2/) authentication, then stealing all your user's API-exposed data (from the provider API - Slack, Google, etc.) becomes a trivial exercise. This data breach would be 100% your fault; Securely handling privileged application credentials is the application owner's responsibility. It is impossible to securely hide a private value (such as `client_secret`) within statically-served SPA code.
 
@@ -261,7 +264,7 @@ The RouterModule.forRoot() method defines the `/auth` endpoint and tells the Ang
 <div style="text-align: center">
   <a href="https://github.com/login/oauth/authorize?client_id=0f09aa44cebc9847d642&redirect_uri=http://localhost:4200/auth">Authenticate via GitHub</a>
 </div>
-<
+
 <router-outlet></router-outlet>
 ```
 
@@ -505,5 +508,3 @@ You can configure the API Gateway and Lambda function to validate and respond to
 You can also configure the API Gateway and Lambda function to run from one specific region in the US, or to optimize for multiple locations. The full suite of AWS cloud configurations and integrations is at your disposal.
 
 [Lambda Pricing](https://aws.amazon.com/lambda/pricing/) is very reasonable - the first 1,000,000 requests per month are free, and requests after that are $0.20 per million.
-
-Thank you for reading!
